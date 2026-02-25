@@ -234,6 +234,43 @@ tripsRoute.patch('/api/trips/:tripId', async (c) => {
   }
 })
 
+tripsRoute.delete('/api/trips/:tripId', async (c) => {
+  const tripId = c.req.param('tripId')
+  const client = await pool.connect()
+
+  try {
+    await client.query('BEGIN')
+
+    const tripResult = await client.query(
+      'SELECT id FROM trips WHERE id = $1',
+      [tripId]
+    )
+
+    if (tripResult.rowCount === 0) {
+      await client.query('ROLLBACK')
+      return c.json({ message: 'Trip not found' }, 404)
+    }
+
+    await client.query('DELETE FROM expenses WHERE trip_id = $1', [tripId])
+    await client.query('DELETE FROM trips WHERE id = $1', [tripId])
+
+    await client.query('COMMIT')
+    return c.json({ message: 'Trip deleted' }, 200)
+
+  } catch (err: any) {   // ← 這裡改成 any
+    await client.query('ROLLBACK')
+    const msg =
+      typeof err?.message === 'string'
+        ? err.message
+        : 'Internal Server Error'
+
+    return c.json({ message: msg }, 500)
+
+  } finally {
+    client.release()
+  }
+})
+
 tripsRoute.get('/api/trips/:tripId', async (c) => {
   try {
     const tripId = c.req.param('tripId')
