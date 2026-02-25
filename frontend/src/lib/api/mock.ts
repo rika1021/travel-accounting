@@ -107,4 +107,12 @@ export const mockApi = {
 
     return expense;
   },
+
+  async deleteTrip(tripId: string): Promise<void> {
+    if (!tripsMap.has(tripId)) {
+      throw new Error('Trip not found');
+    }
+    tripsMap.delete(tripId);
+    expensesMap.delete(tripId);
+  }
 };

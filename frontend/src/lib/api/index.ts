@@ -13,6 +13,7 @@ type Api = {
   createTrip(req: CreateTripRequest): Promise<TripDto>;
   getTrip(tripId: string): Promise<GetTripResponse>;
   createExpense(tripId: string, req: CreateExpenseRequest): Promise<ExpenseDto>;
+  deleteTrip(tripId: string): Promise<void>;
 };
 
 // Decision: if PUBLIC_API_BASE_URL is exactly 'mock' the app uses the built-in mock.
@@ -33,6 +34,7 @@ if (publicBase === 'mock') {
     createTrip: (req) => client.createTrip(req),
     getTrip: (tripId) => client.getTrip(tripId),
     createExpense: (tripId, req) => client.createExpense(tripId, req),
+    deleteTrip: (tripId) => client.deleteTrip(tripId),
   };
 }
 

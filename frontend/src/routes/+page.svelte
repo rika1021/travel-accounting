@@ -13,6 +13,7 @@
   let errorMessage = '';
   let successMessage = '';
   let createdTripId: string | null = null;
+  let isDeleting: string | null = null;
 
   let startDateError = '';
 
@@ -120,6 +121,20 @@
     }
   }
 
+  async function handleDeleteTrip(tripId: string) {
+    if (isDeleting === tripId) return;
+    if (!confirm('Are you sure you want to delete this trip?')) return;
+    isDeleting = tripId;
+    try {
+      await api.deleteTrip(tripId);
+      await fetchTrips();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Delete failed');
+    } finally {
+      isDeleting = null;
+    }
+  }
+
   function goToTrip() {
     if (createdTripId) {
       goto(`/trips/${createdTripId}`);
@@ -211,10 +226,11 @@
           <th>Start Date</th>
           <th>End Date</th>
           <th>Base Currency</th>
+          <th>Delete</th>
         </tr>
       </thead>
       <tbody>
-        {#each trips as trip}
+        {#each trips as trip (trip.id)}
           <tr>
             <td>
               <a href={`/trips/${trip.id}`}>{trip.title}</a>
@@ -222,6 +238,15 @@
             <td>{trip.startDate}</td>
             <td>{trip.endDate}</td>
             <td>{trip.baseCurrency}</td>
+            <td>
+              <button
+                on:click={() => handleDeleteTrip(trip.id)}
+                disabled={isDeleting === trip.id}
+                class="delete-button"
+              >
+                {isDeleting === trip.id ? 'Deleting...' : 'Delete'}
+              </button>
+            </td>
           </tr>
         {/each}
       </tbody>
@@ -341,5 +366,19 @@
   .trip-list th {
     background: #f5f5f5;
     font-weight: 600;
+  }
+
+  .delete-button {
+    color: #fff;
+    background: #c33;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  .delete-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
 </style>

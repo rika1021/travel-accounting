@@ -87,4 +87,8 @@ export class ApiClient {
       req
     );
   }
+
+  async deleteTrip(tripId: string): Promise<void> {
+    await this.request<void>('DELETE', `/api/trips/${tripId}`);
+  }
 }

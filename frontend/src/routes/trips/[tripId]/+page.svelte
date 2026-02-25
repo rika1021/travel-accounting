@@ -2,6 +2,8 @@
   import { page } from '$app/stores';
   import { api } from '$lib/api';
   import type { GetTripResponse, CreateExpenseRequest } from '$lib/api/types';
+  
+  let tripId: string;
 
   let tripData: GetTripResponse | null = null;
   let isLoadingTrip = false;
@@ -23,7 +25,7 @@
     return new Date(b.spentAt).getTime() - new Date(a.spentAt).getTime();
   });
 
-  $: tripId = $page.params.tripId;
+  $: tripId = $page.params.tripId as string;
 
   async function loadTrip() {
     if (!tripId) return;
@@ -496,5 +498,15 @@
     font-size: 14px;
     text-align: center;
     padding: 20px;
+  }
+  .back-link {
+    display: inline-block;
+    margin-bottom: 20px;
+    color: #0066cc;
+    text-decoration: none;
+  }
+
+  .back-link:hover {
+    text-decoration: underline;
   }
 </style>
