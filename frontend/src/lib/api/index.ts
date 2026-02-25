@@ -9,11 +9,20 @@ import type {
 } from './types';
 import { env } from '$env/dynamic/public';
 
-type Api = {
+export type Api = {
   createTrip(req: CreateTripRequest): Promise<TripDto>;
   getTrip(tripId: string): Promise<GetTripResponse>;
   createExpense(tripId: string, req: CreateExpenseRequest): Promise<ExpenseDto>;
   deleteTrip(tripId: string): Promise<void>;
+  updateTrip(
+    tripId: string,
+    payload: {
+      title: string;
+      startDate: string;
+      endDate: string;
+      baseCurrency: string;
+    }
+  ): Promise<TripDto>;
 };
 
 // Decision: if PUBLIC_API_BASE_URL is exactly 'mock' the app uses the built-in mock.
@@ -35,6 +44,7 @@ if (publicBase === 'mock') {
     getTrip: (tripId) => client.getTrip(tripId),
     createExpense: (tripId, req) => client.createExpense(tripId, req),
     deleteTrip: (tripId) => client.deleteTrip(tripId),
+    updateTrip: (tripId, payload) => client.updateTrip(tripId, payload),
   };
 }
 

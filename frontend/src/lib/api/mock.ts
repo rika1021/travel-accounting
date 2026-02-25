@@ -5,7 +5,7 @@ import type {
   CreateExpenseRequest,
   GetTripResponse,
 } from './types';
-
+import type { Api } from './index';
 // In-memory storage
 const tripsMap = new Map<string, TripDto>();
 const expensesMap = new Map<string, ExpenseDto[]>();
@@ -46,7 +46,7 @@ function calculateStats(expenses: ExpenseDto[]) {
   return { totalByCurrency, totalByCategory, totalByDay };
 }
 
-export const mockApi = {
+export const mockApi: Api = {
   async createTrip(req: CreateTripRequest): Promise<TripDto> {
     const trip: TripDto = {
       id: generateId('trip'),
@@ -114,5 +114,26 @@ export const mockApi = {
     }
     tripsMap.delete(tripId);
     expensesMap.delete(tripId);
+  },
+
+  async updateTrip(
+    tripId: string,
+    payload: {
+      title: string;
+      startDate: string;
+      endDate: string;
+      baseCurrency: string;
+    }
+  ): Promise<TripDto> {
+    const trip = tripsMap.get(tripId);
+    if (!trip) throw new Error('Trip not found');
+
+    const updated: TripDto = {
+      ...trip,
+      ...payload
+    };
+
+    tripsMap.set(tripId, updated);
+    return updated;
   }
 };

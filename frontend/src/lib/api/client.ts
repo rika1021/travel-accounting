@@ -91,4 +91,16 @@ export class ApiClient {
   async deleteTrip(tripId: string): Promise<void> {
     await this.request<void>('DELETE', `/api/trips/${tripId}`);
   }
+
+  async updateTrip(
+    tripId: string,
+    payload: {
+      title: string;
+      startDate: string;
+      endDate: string;
+      baseCurrency: string;
+    }
+  ): Promise<TripDto> {
+    return this.request<TripDto>('PATCH', `/api/trips/${tripId}`, payload);
+  }
 }
