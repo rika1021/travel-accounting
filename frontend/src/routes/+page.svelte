@@ -216,7 +216,9 @@
       <tbody>
         {#each trips as trip}
           <tr>
-            <td>{trip.title}</td>
+            <td>
+              <a href={`/trips/${trip.id}`}>{trip.title}</a>
+            </td>
             <td>{trip.startDate}</td>
             <td>{trip.endDate}</td>
             <td>{trip.baseCurrency}</td>
