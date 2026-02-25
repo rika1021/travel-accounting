@@ -116,6 +116,33 @@ tripsRoute.post('/api/trips', async (c) => {
   }
 })
 
+
+// (keep only one GET /api/trips below)
+
+// GET /api/trips - 取得所有 trip，依 created_at DESC 排序
+tripsRoute.get('/api/trips', async (c) => {
+  try {
+    const sql = `
+      SELECT id, title, start_date, end_date, base_currency, created_at
+      FROM trips
+      ORDER BY created_at DESC
+    `
+    const result = await pool.query(sql)
+    const trips = result.rows.map((row) => ({
+      id: String(row.id),
+      title: String(row.title),
+      startDate: toYMD(row.start_date),
+      endDate: toYMD(row.end_date),
+      baseCurrency: String(row.base_currency),
+      createdAt: new Date(row.created_at).toISOString(),
+    }))
+    return c.json(trips, 200)
+  } catch (err: any) {
+    const msg = typeof err?.message === 'string' ? err.message : 'Internal Server Error'
+    return c.json({ message: msg }, 500)
+  }
+})
+
 tripsRoute.get('/api/trips/:tripId', async (c) => {
   try {
     const tripId = c.req.param('tripId')
@@ -283,3 +310,4 @@ tripsRoute.post('/api/trips/:tripId/expenses', async (c) => {
     return c.json({ message: msg }, 500)
   }
 })
+
