@@ -95,6 +95,8 @@
   }
 </script>
 
+<a href="/" style="display:block;margin-bottom:20px;">← Back to Home</a>
+
 <div class="container">
   {#if tripError}
     <div class="error-box">
