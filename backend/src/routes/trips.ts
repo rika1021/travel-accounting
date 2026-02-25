@@ -115,10 +115,6 @@ tripsRoute.post('/api/trips', async (c) => {
     return c.json({ message: msg }, 500)
   }
 })
-
-
-// (keep only one GET /api/trips below)
-
 // GET /api/trips - 取得所有 trip，依 created_at DESC 排序
 tripsRoute.get('/api/trips', async (c) => {
   try {
@@ -136,7 +132,102 @@ tripsRoute.get('/api/trips', async (c) => {
       baseCurrency: String(row.base_currency),
       createdAt: new Date(row.created_at).toISOString(),
     }))
+
     return c.json(trips, 200)
+  } catch (err: any) {
+    const msg = typeof err?.message === 'string' ? err.message : 'Internal Server Error'
+    return c.json({ message: msg }, 500)
+  }
+})
+
+// PATCH /api/trips/:tripId - 部分更新 trip
+tripsRoute.patch('/api/trips/:tripId', async (c) => {
+  try {
+    const tripId = c.req.param('tripId')
+    let body: unknown
+    try {
+      body = await c.req.json()
+    } catch {
+      return c.json({ message: 'invalid JSON' }, 400)
+    }
+    if (body === null || typeof body !== 'object' || Array.isArray(body)) {
+      return c.json({ message: 'invalid body' }, 400)
+    }
+    const allowedFields = ['title', 'startDate', 'endDate', 'baseCurrency']
+    const updates: Record<string, any> = {}
+    for (const key of allowedFields) {
+      if (Object.prototype.hasOwnProperty.call(body, key)) {
+        updates[key] = body[key]
+      }
+    }
+    if (Object.keys(updates).length === 0) {
+      return c.json({ message: 'no fields to update' }, 400)
+    }
+
+    // 先查 trip 是否存在，並取得現有 start_date/end_date
+    const tripResult = await pool.query(
+      `SELECT id, title, start_date, end_date, base_currency, created_at FROM trips WHERE id = $1`,
+      [tripId]
+    )
+    if (tripResult.rowCount === 0) {
+      return c.json({ message: 'Trip not found' }, 404)
+    }
+    const tripRow = tripResult.rows[0]
+
+    // 驗證欄位
+    if ('title' in updates && !isNonEmptyString(updates.title)) {
+      return c.json({ message: 'title is required' }, 400)
+    }
+    if ('startDate' in updates && !isISODateString(updates.startDate)) {
+      return c.json({ message: 'startDate must be YYYY-MM-DD' }, 400)
+    }
+    if ('endDate' in updates && !isISODateString(updates.endDate)) {
+      return c.json({ message: 'endDate must be YYYY-MM-DD' }, 400)
+    }
+    if ('baseCurrency' in updates && !isNonEmptyString(updates.baseCurrency)) {
+      return c.json({ message: 'baseCurrency is required' }, 400)
+    }
+
+    // 日期交叉驗證
+    let newStart = 'startDate' in updates ? updates.startDate : toYMD(tripRow.start_date)
+    let newEnd = 'endDate' in updates ? updates.endDate : toYMD(tripRow.end_date)
+    if (!dateLE(newStart, newEnd)) {
+      return c.json({ message: 'startDate must be <= endDate' }, 400)
+    }
+
+    // 動態組 SET 子句
+    const setClauses: string[] = []
+    const params: any[] = []
+    let idx = 1
+    if ('title' in updates) {
+      setClauses.push(`title = $${idx++}`)
+      params.push(updates.title.trim())
+    }
+    if ('startDate' in updates) {
+      setClauses.push(`start_date = $${idx++}`)
+      params.push(updates.startDate)
+    }
+    if ('endDate' in updates) {
+      setClauses.push(`end_date = $${idx++}`)
+      params.push(updates.endDate)
+    }
+    if ('baseCurrency' in updates) {
+      setClauses.push(`base_currency = $${idx++}`)
+      params.push(updates.baseCurrency.trim())
+    }
+    params.push(tripId)
+
+    const sql = `UPDATE trips SET ${setClauses.join(', ')} WHERE id = $${idx} RETURNING id, title, start_date, end_date, base_currency, created_at`
+    const updateResult = await pool.query(sql, params)
+    const updated = updateResult.rows[0]
+    return c.json({
+      id: String(updated.id),
+      title: String(updated.title),
+      startDate: toYMD(updated.start_date),
+      endDate: toYMD(updated.end_date),
+      baseCurrency: String(updated.base_currency),
+      createdAt: new Date(updated.created_at).toISOString(),
+    }, 200)
   } catch (err: any) {
     const msg = typeof err?.message === 'string' ? err.message : 'Internal Server Error'
     return c.json({ message: msg }, 500)
