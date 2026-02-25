@@ -1,7 +1,8 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import { api } from '$lib/api';
-  import type { CreateTripRequest } from '$lib/api/types';
+  import type { CreateTripRequest, TripDto } from '$lib/api/types';
 
   let title = '';
   let startDate = '';
@@ -14,6 +15,41 @@
   let createdTripId: string | null = null;
 
   let startDateError = '';
+
+  // Trip List state
+  let trips: TripDto[] = [];
+  let tripsLoading = false;
+  let tripsError = '';
+
+  async function fetchTrips() {
+    tripsLoading = true;
+    tripsError = '';
+    try {
+      // 直接 fetch，因 api client 沒有 getTrips 方法
+      const res = await fetch('/api/trips');
+      if (!res.ok) {
+        let msg = `Failed to fetch trips (${res.status})`;
+        try {
+          const data = await res.json();
+          if (data && typeof data.message === 'string') {
+            msg = data.message;
+          }
+        } catch {}
+        throw new Error(msg);
+      }
+      const data = await res.json();
+      trips = Array.isArray(data) ? data : [];
+    } catch (err) {
+      tripsError = err instanceof Error ? err.message : 'Failed to fetch trips';
+      trips = [];
+    } finally {
+      tripsLoading = false;
+    }
+  }
+
+  onMount(() => {
+    fetchTrips();
+  });
 
   function validateDates() {
     startDateError = '';
@@ -70,6 +106,9 @@
       endDate = '';
       baseCurrency = 'TWD';
       startDateError = '';
+
+      // Refresh trip list
+      await fetchTrips();
     } catch (error) {
       if (error instanceof Error) {
         errorMessage = error.message;
@@ -155,6 +194,36 @@
         {isLoading ? 'Creating...' : 'Create Trip'}
       </button>
     </form>
+  {/if}
+
+  <h2 style="margin-top:40px;">Trip List</h2>
+  {#if tripsLoading}
+    <div>Loading trips...</div>
+  {:else if tripsError}
+    <div class="error-message">{tripsError}</div>
+  {:else if trips.length === 0}
+    <div>No trips yet</div>
+  {:else}
+    <table class="trip-list">
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Start Date</th>
+          <th>End Date</th>
+          <th>Base Currency</th>
+        </tr>
+      </thead>
+      <tbody>
+        {#each trips as trip}
+          <tr>
+            <td>{trip.title}</td>
+            <td>{trip.startDate}</td>
+            <td>{trip.endDate}</td>
+            <td>{trip.baseCurrency}</td>
+          </tr>
+        {/each}
+      </tbody>
+    </table>
   {/if}
 </div>
 
@@ -251,5 +320,24 @@
   form {
     display: flex;
     flex-direction: column;
+  }
+
+  .trip-list {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 16px;
+  }
+
+  .trip-list th,
+  .trip-list td {
+    border: 1px solid #ddd;
+    padding: 8px 10px;
+    text-align: left;
+    font-size: 14px;
+  }
+
+  .trip-list th {
+    background: #f5f5f5;
+    font-weight: 600;
   }
 </style>
