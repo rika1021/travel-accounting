@@ -20,13 +20,16 @@ async function forward(event: RequestEvent) {
       request.method !== 'GET' && request.method !== 'HEAD'
         ? await request.arrayBuffer()
         : undefined,
-    redirect: 'manual'
   });
 
-  // 直接回傳原始 response（不要 clone headers）
+  // ⭐ 重新建立 headers，移除壓縮相關 header
+  const newHeaders = new Headers(res.headers);
+  newHeaders.delete('content-encoding');
+  newHeaders.delete('content-length');
+
   return new Response(res.body, {
     status: res.status,
-    headers: res.headers
+    headers: newHeaders
   });
 }
 
