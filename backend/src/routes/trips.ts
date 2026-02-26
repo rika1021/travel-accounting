@@ -153,11 +153,13 @@ tripsRoute.patch('/api/trips/:tripId', async (c) => {
     if (body === null || typeof body !== 'object' || Array.isArray(body)) {
       return c.json({ message: 'invalid body' }, 400)
     }
+    const typedBody = body as Record<string, unknown>
+
     const allowedFields = ['title', 'startDate', 'endDate', 'baseCurrency']
     const updates: Record<string, any> = {}
     for (const key of allowedFields) {
-      if (Object.prototype.hasOwnProperty.call(body, key)) {
-        updates[key] = body[key]
+      if (Object.prototype.hasOwnProperty.call(typedBody, key)) {
+        updates[key] = typedBody[key]
       }
     }
     if (Object.keys(updates).length === 0) {
