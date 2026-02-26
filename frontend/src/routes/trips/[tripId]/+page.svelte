@@ -1,4 +1,57 @@
 <script lang="ts">
+    // Trip Edit state
+    let isEditing = false;
+    let isUpdating = false;
+    let editError = '';
+
+    let editTitle = '';
+    let editStartDate = '';
+    let editEndDate = '';
+    let editBaseCurrency = '';
+
+    function enterEditMode() {
+      if (!tripData) return;
+      isEditing = true;
+      editError = '';
+      editTitle = tripData.trip.title;
+      editStartDate = tripData.trip.startDate;
+      editEndDate = tripData.trip.endDate;
+      editBaseCurrency = tripData.trip.baseCurrency;
+    }
+
+    function cancelEdit() {
+      isEditing = false;
+      editError = '';
+    }
+
+    async function handleUpdateTrip() {
+      if (isUpdating) return;
+      if (!tripId) return;
+      if (!editTitle.trim()) {
+        editError = 'Title cannot be empty';
+        return;
+      }
+      if (editStartDate > editEndDate) {
+        editError = 'Start date cannot be after end date';
+        return;
+      }
+      isUpdating = true;
+      editError = '';
+      try {
+        await api.updateTrip(tripId, {
+          title: editTitle,
+          startDate: editStartDate,
+          endDate: editEndDate,
+          baseCurrency: editBaseCurrency
+        });
+        await loadTrip();
+        isEditing = false;
+      } catch (err) {
+        editError = err instanceof Error ? err.message : 'Update failed';
+      } finally {
+        isUpdating = false;
+      }
+    }
   import { page } from '$app/stores';
   import { api } from '$lib/api';
   import type { GetTripResponse, CreateExpenseRequest } from '$lib/api/types';
@@ -111,11 +164,40 @@
   {:else if tripData}
     <!-- Trip Summary -->
     <section class="trip-summary">
-      <h1>{tripData.trip.title}</h1>
-      <p class="date-range">
-        {tripData.trip.startDate} to {tripData.trip.endDate}
-      </p>
-      <p class="base-currency">Base Currency: <strong>{tripData.trip.baseCurrency}</strong></p>
+      {#if !isEditing}
+        <h1>{tripData.trip.title}</h1>
+        <p class="date-range">
+          {tripData.trip.startDate} to {tripData.trip.endDate}
+        </p>
+        <p class="base-currency">Base Currency: <strong>{tripData.trip.baseCurrency}</strong></p>
+        <button on:click={enterEditMode}>Edit</button>
+      {:else}
+        <form on:submit|preventDefault={handleUpdateTrip}>
+          <div class="form-group">
+            <label>Title</label>
+            <input type="text" bind:value={editTitle} />
+          </div>
+          <div class="form-group">
+            <label>Start Date</label>
+            <input type="date" bind:value={editStartDate} />
+          </div>
+          <div class="form-group">
+            <label>End Date</label>
+            <input type="date" bind:value={editEndDate} />
+          </div>
+          <div class="form-group">
+            <label>Base Currency</label>
+            <input type="text" bind:value={editBaseCurrency} />
+          </div>
+          <div class="form-group">
+            <button type="submit" disabled={isUpdating}>Save</button>
+            <button type="button" on:click={cancelEdit}>Cancel</button>
+          </div>
+          {#if editError}
+            <div class="error-box">{editError}</div>
+          {/if}
+        </form>
+      {/if}
     </section>
 
     <!-- Stats -->
